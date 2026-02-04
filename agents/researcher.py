@@ -1,19 +1,30 @@
-import os
-
 class Researcher:
-    def __init__(self, model_type="gemini"):
-        self.model_type = model_type
+    def __init__(self, handler):
+        self.handler = handler
 
-    def get_prompt(self, raw_text):
-        return f"""
-        ROLE: You are the 'Lead Researcher' in a 0.01% Agentic Council.
-        TASK: Analyze the following educational material and extract the 5 most critical logical concepts.
+    def analyze(self, context, student_work):
+        prompt = f"""
+        ROLE: Senior Pedagogical Auditor.
+        TASK: Compare the STUDENT WORK against the SOURCE TRUTH.
         
-        GUIDELINES:
-        1. Do NOT summarize. Extract high-density logical structures.
-        2. Identify potential 'Logic Fractures' where a student might get confused.
-        3. Output your findings in a structured format for the 'Critic Agent' to review.
+        SOURCE TRUTH: {context[:40000]}
+        STUDENT WORK: {student_work[:10000]}
         
-        MATERIAL:
-        {raw_text}
+        GOAL: Identify the specific logical failures in the student's understanding. 
+        For every error, cite the page/section from the source.
         """
+        return self.handler.call_gemini(prompt)
+
+    def generate_notes(self, context):
+        prompt = f"""
+        ROLE: Master Educator.
+        TASK: Create high-yield revision notes from the provided text.
+        
+        CONTEXT: {context[:40000]}
+        
+        FORMAT: 
+        - Use Bold headers.
+        - Use Bullet points for key definitions.
+        - Add a 'Common Pitfalls' section.
+        """
+        return self.handler.call_gemini(prompt)
