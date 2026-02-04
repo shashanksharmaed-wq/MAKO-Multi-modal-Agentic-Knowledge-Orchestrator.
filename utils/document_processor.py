@@ -1,25 +1,24 @@
 import PyPDF2
+import io
 
 class DocumentProcessor:
     @staticmethod
-    def extract_text(pdf_file):
-        try:
-            reader = PyPDF2.PdfReader(pdf_file)
-            total_pages = len(reader.pages)
-            
-            # If the PDF is huge, we take the first 10 and last 5 pages 
-            # to capture the "Context" and the "Conclusion".
-            pages_to_read = list(range(min(10, total_pages)))
-            if total_pages > 15:
-                pages_to_read.extend(range(total_pages-5, total_pages))
-
-            full_text = ""
-            for i in pages_to_read:
-                text = reader.pages[i].extract_text()
-                if text:
-                    full_text += text
-            
-            # THE SAFETY SLICE: Ensure we never exceed 25k tokens (~100k characters)
-            return full_text[:100000] 
-        except Exception as e:
-            return f"Error reading PDF: {str(e)}"
+    def extract_text(uploaded_file):
+        if uploaded_file is None:
+            return ""
+        
+        # Check if it's a PDF
+        if uploaded_file.name.endswith('.pdf'):
+            try:
+                pdf_reader = PyPDF2.PdfReader(uploaded_file)
+                text = ""
+                # Read first 15 pages for context (to avoid token limits)
+                for page in pdf_reader.pages[:15]:
+                    text += page.extract_text()
+                return text
+            except Exception as e:
+                return f"Error reading PDF: {e}"
+        
+        # If it's an Image (GPT-4o handles text description via prompt)
+        else:
+            return "Note: This is an image file. Analyzing visual content directly via Vision API."
