@@ -1,39 +1,35 @@
 import google.generativeai as genai
 import os
-from dotenv import load_dotenv
-
-# Load variables from .env for local development
-load_dotenv()
+import streamlit as st
 
 class APIHandler:
     def __init__(self):
-        """
-        Initializes the Gemini 1.5 Pro connection.
-        It prioritizes the 'GOOGLE_API_KEY' found in environment variables 
-        (Secrets in Streamlit Cloud or .env locally).
-        """
+        # 1. Fetch Key
         self.api_key = os.getenv("GOOGLE_API_KEY")
-        
+        if not self.api_key and "GOOGLE_API_KEY" in st.secrets:
+            self.api_key = st.secrets["GOOGLE_API_KEY"]
+
         if not self.api_key:
-            # This will show up in your Streamlit logs if the Secret is missing
-            raise ValueError("GOOGLE_API_KEY not found. Please set it in Streamlit Secrets or .env file.")
+            raise ValueError("GOOGLE_API_KEY missing from Secrets.")
         
-        # Configure the Google Generative AI library
+        # 2. Initialize
         genai.configure(api_key=self.api_key)
         
-        # Selecting the Pro model for 0.01% reasoning capabilities
-        self.model = genai.GenerativeModel('gemini-1.5-pro')
+        # 3. Model Selection (Using the specific 'latest' tag to avoid 404)
+        # If 'gemini-1.5-pro-latest' fails, 'gemini-1.5-flash' is the safest backup
+        try:
+            self.model = genai.GenerativeModel('gemini-1.5-pro-latest')
+        except Exception:
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
 
     def call_gemini(self, prompt):
-        """
-        Sends a prompt to the Council's brain and returns the logical response.
-        """
         try:
-            # Temperature 0.2: The 'Panna' frequency (Cold, Precise, Logical)
+            # Temperature 0.2: Logical, not creative.
             response = self.model.generate_content(
                 prompt, 
                 generation_config={"temperature": 0.2}
             )
             return response.text
         except Exception as e:
+            # This helps us see the EXACT error in the UI
             return f"Council Communication Failure: {str(e)}"
