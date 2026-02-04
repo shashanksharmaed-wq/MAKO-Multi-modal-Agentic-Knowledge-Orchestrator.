@@ -3,82 +3,65 @@ from utils.api_handler import APIHandler
 from utils.document_processor import DocumentProcessor
 from agents.researcher import Researcher
 
-# --- UI CONFIGURATION ---
-st.set_page_config(page_title="MAKO | Agentic Knowledge Orchestrator", layout="wide")
+st.set_page_config(page_title="MAKO | Agentic Hub", layout="wide")
 
-# Custom CSS for the 1.0L+ Architect Look
-st.markdown("""
-    <style>
-    .stApp { background-color: #0d1117; color: #c9d1d9; }
-    .thought-box { background-color: #161b22; border-left: 4px solid #58a6ff; padding: 15px; border-radius: 5px; margin: 10px 0; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; color: #8b949e; }
-    .verdict-box { background-color: #21262d; border: 1px solid #30363d; padding: 20px; border-radius: 8px; }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- INITIALIZATION ---
+# Initialize Brain
 if "handler" not in st.session_state:
     st.session_state.handler = APIHandler()
 
-# --- SIDEBAR: INTERNAL MONOLOGUE ---
+# --- SIDEBAR: MISSION SELECTION ---
 with st.sidebar:
-    st.title("🦅 MAKO COUNCIL")
-    st.status("System: Operational", state="complete")
-    st.subheader("Internal Thought Process")
-    thought_container = st.empty() 
+    st.title("🦅 MAKO Console")
+    # THE PIVOT: Give the user choices so it's always practical
+    mode = st.radio("Select Council Task:", 
+                    ["📚 Note Generator", "✍️ Mock Test Creator", "⚖️ Surgical Auditor"])
     st.divider()
-    st.info("MAKO is currently running on the OpenAI GPT-4o Backbone.")
+    st.info(f"Mode: {mode}")
 
-# --- MAIN UI ---
-st.title("Multi-Modal Agentic Knowledge Orchestrator")
-st.write("Targeting **Pedagogical Remediation** & **Automated Audit**")
+st.title("Multi-Modal Knowledge Orchestrator")
 
-col1, col2 = st.columns(2)
-
-with col1:
-    st.subheader("📂 Step 1: Source Truth")
-    source_pdf = st.file_uploader("Upload Textbook/Manual (PDF)", type="pdf")
-
-with col2:
-    st.subheader("📝 Step 2: Ingest Failure")
-    answer_sheet = st.file_uploader("Upload Student Work (Image/PDF)", type=["pdf", "jpg", "jpeg", "png"])
+# STEP 1: UPLOAD SOURCE (Required for all modes)
+st.subheader("Step 1: Upload Source Truth")
+source_pdf = st.file_uploader("Upload Textbook / Manual (PDF)", type="pdf")
 
 st.divider()
 
-# --- ACTION BUTTONS ---
-btn_col1, btn_col2 = st.columns(2)
+# STEP 2: DYNAMIC INPUTS BASED ON MODE
+st.subheader(f"Step 2: {mode} Configuration")
 
-with btn_col1:
-    if st.button("🚀 Run Diagnostic Audit", use_container_width=True):
-        if source_pdf and answer_sheet:
-            with st.spinner("Council is deliberating..."):
-                # 1. Process Files
-                context = DocumentProcessor.extract_text(source_pdf)
-                student_work = DocumentProcessor.extract_text(answer_sheet)
-                
-                # 2. Researcher Agent Action
-                thought_container.markdown("<div class='thought-box'>[RESEARCHER]: Mapping student failure points to source context...</div>", unsafe_allow_html=True)
-                agent = Researcher(st.session_state.handler)
-                report = agent.analyze(context, student_work)
-                
-                st.session_state.final_report = report
-                thought_container.markdown("<div class='thought-box'>[COUNCIL]: Logic gaps identified. Report generated.</div>", unsafe_allow_html=True)
-        else:
-            st.warning("Please upload both the Source and the Student Work.")
+if mode == "📚 Note Generator":
+    st.write("The Council will distill the PDF into high-yield revision notes.")
+    topic_focus = st.text_input("Specific topic? (Leave blank for full summary)")
 
-with btn_col2:
-    if st.button("📚 Generate High-Yield Notes", use_container_width=True):
-        if source_pdf:
-            with st.spinner("Distilling knowledge..."):
-                context = DocumentProcessor.extract_text(source_pdf)
-                agent = Researcher(st.session_state.handler)
-                notes = agent.generate_notes(context)
-                st.session_state.final_report = notes
-                thought_container.markdown("<div class='thought-box'>[RESEARCHER]: Distilling PDF into conceptual pillars...</div>", unsafe_allow_html=True)
-        else:
-            st.warning("Please upload the Source PDF first.")
+elif mode == "✍️ Mock Test Creator":
+    st.write("Generate a custom exam based on the PDF content.")
+    num_q = st.slider("Number of Questions", 5, 20, 10)
 
-# --- DISPLAY RESULTS ---
-if "final_report" in st.session_state:
-    st.markdown("<div class='verdict-box'>", unsafe_allow_html=True)
-    st.markdown(st.session_state.final_report)
-    st.markdown("</div>", unsafe_allow_html=True)
+elif mode == "⚖️ Surgical Auditor":
+    st.write("Upload a specific complex answer to verify against the source.")
+    student_work = st.text_area("Paste the Student's Answer or Doubt here...")
+
+# STEP 3: EXECUTION
+if st.button(f"🚀 Execute {mode}"):
+    if source_pdf:
+        with st.spinner("The Council is deliberating..."):
+            context = DocumentProcessor.extract_text(source_pdf)
+            agent = Researcher(st.session_state.handler)
+            
+            if mode == "📚 Note Generator":
+                output = agent.generate_notes(context, topic_focus)
+            elif mode == "✍️ Mock Test Creator":
+                output = agent.generate_test(context, num_q)
+            elif mode == "⚖️ Surgical Auditor":
+                output = agent.analyze(context, student_work)
+            
+            st.session_state.final_output = output
+    else:
+        st.error("Please upload the Source PDF first.")
+
+# STEP 4: DISPLAY RESULTS
+if "final_output" in st.session_state:
+    st.divider()
+    st.subheader("📋 Council Result")
+    st.markdown(st.session_state.final_output)
+    st.download_button("📥 Download Report", st.session_state.final_output, file_name=f"MAKO_{mode}.txt")
