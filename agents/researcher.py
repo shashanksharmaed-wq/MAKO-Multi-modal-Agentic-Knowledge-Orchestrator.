@@ -2,29 +2,15 @@ class Researcher:
     def __init__(self, handler):
         self.handler = handler
 
-    def analyze(self, context, student_work):
-        prompt = f"""
-        ROLE: Senior Pedagogical Auditor.
-        TASK: Compare the STUDENT WORK against the SOURCE TRUTH.
-        
-        SOURCE TRUTH: {context[:40000]}
-        STUDENT WORK: {student_work[:10000]}
-        
-        GOAL: Identify the specific logical failures in the student's understanding. 
-        For every error, cite the page/section from the source.
-        """
+    def generate_notes(self, context, topic=""):
+        target = f"focusing on {topic}" if topic else "the entire document"
+        prompt = f"Create structured, high-yield revision notes {target} using this source: {context[:40000]}"
         return self.handler.call_gemini(prompt)
 
-    def generate_notes(self, context):
-        prompt = f"""
-        ROLE: Master Educator.
-        TASK: Create high-yield revision notes from the provided text.
-        
-        CONTEXT: {context[:40000]}
-        
-        FORMAT: 
-        - Use Bold headers.
-        - Use Bullet points for key definitions.
-        - Add a 'Common Pitfalls' section.
-        """
+    def generate_test(self, context, count):
+        prompt = f"Create {count} multiple-choice questions (MCQs) with an answer key based on: {context[:40000]}"
+        return self.handler.call_gemini(prompt)
+
+    def analyze(self, context, student_work):
+        prompt = f"Compare this student answer to the source and identify logical errors: \nSource: {context[:40000]}\nAnswer: {student_work}"
         return self.handler.call_gemini(prompt)
