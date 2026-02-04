@@ -1,83 +1,69 @@
-import subprocess
-import sys
 import streamlit as st
-
-# --- THE 0.01% FORCE INSTALL ---
-try:
-    import openai
-except ImportError:
-    st.warning("🛠️ Environment incomplete. Force-installing 'openai'...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "openai"])
-    st.rerun()
-
-# ... rest of your imports (Researcher, APIHandler, etc.)import streamlit as st
-from agents.researcher import Researcher
-from agents.critic import Critic
-from agents.optimizer import Optimizer
-from agents.remedial_architect import RemedialArchitect
 from utils.api_handler import APIHandler
 from utils.document_processor import DocumentProcessor
+from agents.researcher import Researcher
+# Import other agents as you create them (Critic, Optimizer)
 
-st.set_page_config(page_title="MAKO Agentic Engine", page_icon="🦅", layout="wide")
+# --- UI CONFIGURATION (The 1.0L+ Aesthetic) ---
+st.set_page_config(page_title="MAKO | Agentic Orchestrator", layout="wide")
 
-# --- UI Header ---
-st.title("🦅 MAKO: Agentic Knowledge Orchestrator")
-st.info("Status: Bunker Build | 0.01% Recursive Evaluation Mode")
+st.markdown("""
+    <style>
+    .reportview-container { background: #0e1117; color: white; }
+    .stSidebar { background-color: #161b22; border-right: 1px solid #30363d; }
+    .thought-box { background-color: #0d1117; border-left: 3px solid #58a6ff; padding: 10px; margin: 10px 0; font-style: italic; color: #8b949e; }
+    </style>
+""", unsafe_allow_html=True)
 
-# --- Sidebar Configuration ---
+# --- INITIALIZATION ---
+if "handler" not in st.session_state:
+    st.session_state.handler = APIHandler()
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# --- SIDEBAR: THE INTERNAL MONOLOGUE ---
 with st.sidebar:
-    st.header("⚙️ Engine Settings")
-    model_choice = st.selectbox("Intelligence Core", ["Gemini 1.5 Pro", "GPT-4o (Soon)"])
-    st.divider()
-    st.markdown("### The Council Status")
-    st.write("🕵️ Researcher: **Online**")
-    st.write("⚖️ Critic: **Online**")
-    st.write("🛠️ Optimizer: **Online**")
-    st.write("🎯 Remedial Architect: **Online**")
+    st.title("🦅 MAKO Council")
+    st.info("The Council is currently monitoring the environment.")
+    st.subheader("Internal Thought Process")
+    thought_container = st.empty() # This is where the 'Debate' will show up
 
-# --- Main Logic ---
-handler = APIHandler()
-doc_tool = DocumentProcessor()
+# --- MAIN INTERFACE ---
+st.title("Multi-Modal Agentic Knowledge Orchestrator")
+st.caption("Pedagogical Remediation Engine | 0.01% Architect Tier")
 
-uploaded_file = st.file_uploader("Upload Pedagogical Material (PDF)", type="pdf")
+col1, col2 = st.columns([1, 1])
 
-if uploaded_file:
-    # 1. READ
-    with st.spinner("Ingesting material..."):
-        raw_text = doc_tool.extract_text(uploaded_file)
-    st.success("Material Verified. Ready to Strike.")
+with col1:
+    st.subheader("Step 1: Ingest Truth (PDF)")
+    uploaded_file = st.file_uploader("Upload Pedagogical Material", type="pdf")
 
-    if st.button("🚀 ACTIVATE AGENTIC COUNCIL"):
-        # Create Layout Columns for the Council Debate
-        c1, c2 = st.columns(2)
-        
-        # STEP 1: RESEARCH
-        with c1:
-            with st.expander("🕵️ Agent 1: Research Log", expanded=True):
-                research_data = handler.call_gemini(Researcher().get_prompt(raw_text))
-                st.write(research_data)
+with col2:
+    st.subheader("Step 2: Input Failure (Answer Sheet)")
+    student_input = st.text_area("Paste Student Answers or Mistakes here...", height=150)
 
-        # STEP 2: CRITIQUE
-        with c2:
-            with st.expander("⚖️ Agent 2: Logic Audit", expanded=True):
-                critic_feedback = handler.call_gemini(Critic().get_prompt(research_data))
-                st.write(critic_feedback)
+if st.button("🚀 Ignite the Council"):
+    if uploaded_file and student_input:
+        with st.spinner("Council is deliberating..."):
+            # 1. Process Document
+            context = DocumentProcessor.extract_text(uploaded_file)
+            
+            # 2. Researcher Agent (The First Chair)
+            thought_container.markdown("<div class='thought-box'>Researcher: Scanning PDF for conceptual anchors...</div>", unsafe_allow_html=True)
+            researcher = Researcher(st.session_state.handler)
+            research_report = researcher.analyze(context, student_input)
+            
+            # Display Results
+            st.divider()
+            st.subheader("📋 The Council's Verdict")
+            st.markdown(research_report)
+            
+            # (Optional) You can add Critic and Optimizer here following the same pattern
+            thought_container.markdown("<div class='thought-box'>Council: Deliberation Complete. Remediation path generated.</div>", unsafe_allow_html=True)
+    else:
+        st.warning("Please provide both the PDF and the Student Input.")
 
-        st.divider()
-
-        # STEP 3 & 4: THE PRODUCT
-        col_res1, col_res2 = st.columns(2)
-        
-        with col_res1:
-            st.subheader("🎯 Optimized Assessment")
-            with st.spinner("Agent 3: Finalizing..."):
-                final_output = handler.call_gemini(Optimizer().get_prompt(research_data, critic_feedback))
-                st.write(final_output)
-
-        with col_res2:
-            st.subheader("🗓️ Remedial Execution Blueprint")
-            with st.spinner("Agent 4: Architecting..."):
-                remedial_plan = handler.call_gemini(RemedialArchitect().get_prompt(critic_feedback, raw_text))
-                st.markdown(remedial_plan)
-
-        st.balloons() # The 1.0L+ Victory signal
+# --- FOOTER ---
+st.sidebar.markdown("---")
+st.sidebar.write(f"**Status:** Operational")
+st.sidebar.write(f"**Model:** GPT-4o (OpenAI)")
