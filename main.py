@@ -1,4 +1,16 @@
+import subprocess
+import sys
 import streamlit as st
+
+# --- THE 0.01% FORCE INSTALL ---
+try:
+    import openai
+except ImportError:
+    st.warning("🛠️ Environment incomplete. Force-installing 'openai'...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "openai"])
+    st.rerun()
+
+# ... rest of your imports (Researcher, APIHandler, etc.)import streamlit as st
 from agents.researcher import Researcher
 from agents.critic import Critic
 from agents.optimizer import Optimizer
