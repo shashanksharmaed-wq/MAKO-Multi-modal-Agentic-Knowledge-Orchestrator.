@@ -1,5 +1,6 @@
 import PyPDF2
 from docx import Document
+from pptx import Presentation
 import io
 
 class DocumentProcessor:
@@ -9,18 +10,28 @@ class DocumentProcessor:
         
         name = uploaded_file.name.lower()
         
-        # PDF Handler
+        # 1. PDF Handler
         if name.endswith('.pdf'):
             reader = PyPDF2.PdfReader(uploaded_file)
             return " ".join([page.extract_text() for page in reader.pages[:15]])
         
-        # Word Doc Handler
+        # 2. Word Doc Handler
         elif name.endswith('.docx'):
             doc = Document(uploaded_file)
             return " ".join([para.text for para in doc.paragraphs])
         
-        # Image Handler (We return a flag so the API knows to use Vision)
+        # 3. PowerPoint Handler
+        elif name.endswith('.pptx'):
+            prs = Presentation(uploaded_file)
+            text_runs = []
+            for slide in prs.slides:
+                for shape in slide.shapes:
+                    if hasattr(shape, "text"):
+                        text_runs.append(shape.text)
+            return " ".join(text_runs)
+        
+        # 4. Image Handler (Vision Trigger)
         elif name.endswith(('.png', '.jpg', '.jpeg')):
-            return "[IMAGE_UPLOADED]"
+            return "[IMAGE_READY]"
         
         return "Unsupported format."
