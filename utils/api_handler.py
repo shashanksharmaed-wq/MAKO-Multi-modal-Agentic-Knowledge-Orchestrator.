@@ -4,32 +4,26 @@ import streamlit as st
 
 class APIHandler:
     def __init__(self):
-        # 1. Fetch Key
         self.api_key = os.getenv("GOOGLE_API_KEY")
         if not self.api_key and "GOOGLE_API_KEY" in st.secrets:
             self.api_key = st.secrets["GOOGLE_API_KEY"]
-
-        if not self.api_key:
-            raise ValueError("GOOGLE_API_KEY missing from Secrets.")
         
-        # 2. Initialize
         genai.configure(api_key=self.api_key)
-        
-        # 3. Model Selection (Using the specific 'latest' tag to avoid 404)
-        # If 'gemini-1.5-pro-latest' fails, 'gemini-1.5-flash' is the safest backup
-        try:
-            self.model = genai.GenerativeModel('gemini-1.5-pro-latest')
-        except Exception:
-            self.model = genai.GenerativeModel('gemini-1.5-flash')
+
+    def get_available_models(self):
+        """Returns a list of all models your API key can actually use."""
+        models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        return models
 
     def call_gemini(self, prompt):
+        # We will use this to find the right name
+        available = self.get_available_models()
+        # Standard fallback logic
+        model_name = 'models/gemini-1.5-flash' if 'models/gemini-1.5-flash' in available else available[0]
+        
         try:
-            # Temperature 0.2: Logical, not creative.
-            response = self.model.generate_content(
-                prompt, 
-                generation_config={"temperature": 0.2}
-            )
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(prompt)
             return response.text
         except Exception as e:
-            # This helps us see the EXACT error in the UI
-            return f"Council Communication Failure: {str(e)}"
+            return f"Available Models: {available} | Error: {str(e)}"
