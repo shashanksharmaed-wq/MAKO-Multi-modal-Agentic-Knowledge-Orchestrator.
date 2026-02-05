@@ -1,147 +1,95 @@
 import streamlit as st
 import os
-from utils.api_handler import APIHandler
-from utils.document_processor import DocumentProcessor
-from agents.researcher import Researcher
 
-# --- 1. UI CONFIGURATION (0.01% Architect Aesthetic) ---
-st.set_page_config(
-    page_title="MAKO | Universal Agentic Hub",
-    page_icon="🦅",
-    layout="wide"
-)
+# --- 1. SAFE IMPORTS (Prevents NameError) ---
+try:
+    from utils.api_handler import APIHandler
+    from utils.document_processor import DocumentProcessor
+    from agents.researcher import Researcher
+except ImportError as e:
+    st.error(f"🚨 Path Error: {e}. Check if 'agents' and 'utils' folders are correct.")
+    st.stop()
 
-# Custom CSS for a professional "Dark Mode" console look
+# --- 2. CONFIG & UI ---
+st.set_page_config(page_title="MAKO | Agentic Hub", page_icon="🦅", layout="wide")
+
+# Custom CSS for the 0.01% Architect Look
 st.markdown("""
     <style>
     .stApp { background-color: #0d1117; color: #c9d1d9; }
-    .stSidebar { background-color: #161b22; border-right: 1px solid #30363d; }
-    .thought-box { 
-        background-color: #010409; 
-        border-left: 4px solid #58a6ff; 
-        padding: 12px; 
-        border-radius: 4px; 
-        font-family: 'Courier New', monospace; 
-        font-size: 0.85em; 
-        color: #8b949e;
-        margin-bottom: 10px;
-    }
-    .result-container {
-        background-color: #161b22;
-        padding: 25px;
-        border-radius: 10px;
-        border: 1px solid #30363d;
-        margin-top: 20px;
-    }
+    .thought-box { background-color: #161b22; border-left: 4px solid #58a6ff; padding: 15px; font-family: monospace; color: #8b949e; }
+    .result-container { background-color: #161b22; padding: 25px; border-radius: 10px; border: 1px solid #30363d; margin-top: 20px; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. INITIALIZATION ---
+# --- 3. INITIALIZATION ---
 if "handler" not in st.session_state:
     st.session_state.handler = APIHandler()
 
-# --- 3. SIDEBAR: THE COUNCIL CONTROL ---
+# --- 4. SIDEBAR ---
 with st.sidebar:
     st.title("🦅 MAKO COUNCIL")
-    st.markdown("---")
-    
-    # Mode Selection: The Swiss Army Knife approach
-    mode = st.radio(
-        "Select Operation Mode:",
-        ["📚 Notes Generator", "✍️ Mock Test Creator", "⚖️ Diagnostic Auditor"],
-        help="Choose the specific logic for the Council to follow."
-    )
-    
-    st.markdown("---")
-    st.subheader("Internal Thought Process")
-    thought_container = st.empty() # Dynamic placeholder for the 'Council Debate'
-    
-    if st.button("🧹 Clear Workspace"):
+    st.divider()
+    mode = st.radio("Task Selection:", ["📚 Notes", "✍️ Mock Test", "⚖️ Audit"])
+    st.divider()
+    thought_container = st.empty()
+    if st.button("🧹 Reset Workspace"):
         st.session_state.clear()
         st.rerun()
 
-# --- 4. MAIN INTERFACE ---
+# --- 5. MAIN INTERFACE ---
 st.title("Multi-Modal Agentic Knowledge Orchestrator")
-st.caption("Universal Ingestion Engine: PDF | DOCX | PPTX | VISION")
+st.caption("Universal Engine: PDF | DOCX | PPTX | Vision (JPG/PNG)")
 
-# DUAL INGESTION COLS
 col1, col2 = st.columns(2)
-
 with col1:
-    st.subheader("📁 Step 1: Ingest Truth")
-    # Universal file uploader
-    source_file = st.file_uploader(
-        "Upload Source (Textbook, PPT, or Photo)", 
-        type=["pdf", "docx", "pptx", "jpg", "jpeg", "png"],
-        key="main_source"
-    )
+    st.subheader("📁 Step 1: Source Truth")
+    source_file = st.file_uploader("Upload Textbook/Notes", type=["pdf", "docx", "pptx", "jpg", "jpeg", "png"])
 
 with col2:
-    if mode == "⚖️ Diagnostic Auditor":
-        st.subheader("📝 Step 2: Ingest Failure")
-        evidence_file = st.file_uploader(
-            "Upload Student Work (Image/PDF)", 
-            type=["pdf", "docx", "jpg", "jpeg", "png"],
-            key="audit_evidence"
-        )
+    if mode == "⚖️ Audit":
+        st.subheader("📝 Step 2: Student Work")
+        evidence_file = st.file_uploader("Upload Answer Sheet", type=["pdf", "docx", "pptx", "jpg", "jpeg", "png"])
     else:
-        st.subheader("🎯 Step 2: Focus")
-        focus_topic = st.text_input("Focus on a specific topic? (Optional)", placeholder="e.g. Calvin Cycle, Calculus, etc.")
+        st.subheader("🎯 Step 2: Focus Area")
+        focus_topic = st.text_input("Enter specific topic (Optional)")
 
-st.divider()
-
-# --- 5. EXECUTION LOGIC ---
-if st.button(f"🚀 Execute {mode}", use_container_width=True):
+# --- 6. EXECUTION ---
+if st.button(f"🚀 Run {mode}", use_container_width=True):
     if source_file:
-        with st.spinner("The Council is deliberating..."):
+        with st.spinner("Council Deliberating..."):
             # A. Extract Source Text/Vision Flag
-            source_content = DocumentProcessor.extract_text(source_file)
-            is_source_img = "[IMAGE_READY]" in source_content
+            source_raw = DocumentProcessor.extract_text(source_file)
+            is_source_img = "[IMAGE_READY]" in source_raw
             
             # B. Initialize Agent
             agent = Researcher(st.session_state.handler)
             
-            # C. Execute based on Mode
-            if mode == "📚 Notes Generator":
-                thought_container.markdown("<div class='thought-box'>[RESEARCHER]: Distilling foundational concepts from source...</div>", unsafe_allow_html=True)
-                res = agent.generate_notes(source_content, source_file if is_source_img else None)
-            
-            elif mode == "✍️ Mock Test Creator":
-                thought_container.markdown("<div class='thought-box'>[RESEARCHER]: Analyzing document structure to generate evaluation logic...</div>", unsafe_allow_html=True)
-                res = agent.generate_test(source_content, source_file if is_source_img else None)
-            
-            elif mode == "⚖️ Diagnostic Auditor":
+            # C. Logic Mapping
+            if mode == "📚 Notes":
+                thought_container.markdown("<div class='thought-box'>[RESEARCHER]: Distilling high-yield nodes...</div>", unsafe_allow_html=True)
+                res = agent.generate_notes(source_raw, source_file if is_source_img else None)
+            elif mode == "✍️ Mock Test":
+                thought_container.markdown("<div class='thought-box'>[RESEARCHER]: Generating evaluation logic...</div>", unsafe_allow_html=True)
+                res = agent.generate_test(source_raw, source_file if is_source_img else None)
+            elif mode == "⚖️ Audit":
                 if evidence_file:
-                    evidence_content = DocumentProcessor.extract_text(evidence_file)
-                    is_evidence_img = "[IMAGE_READY]" in evidence_content
-                    
-                    thought_container.markdown("<div class='thought-box'>[RESEARCHER]: Mapping student work against primary source truth...</div>", unsafe_allow_html=True)
-                    res = agent.analyze(
-                        source_content, 
-                        evidence_content, 
-                        source_file if is_source_img else None,
-                        evidence_file if is_evidence_img else None
-                    )
+                    evidence_raw = DocumentProcessor.extract_text(evidence_file)
+                    is_evid_img = "[IMAGE_READY]" in evidence_raw
+                    thought_container.markdown("<div class='thought-box'>[RESEARCHER]: Mapping evidence vs source...</div>", unsafe_allow_html=True)
+                    res = agent.analyze(source_raw, evidence_raw, source_file if is_source_img else None, evidence_file if is_evid_img else None)
                 else:
-                    st.error("Audit mode requires student evidence (Answer Sheet).")
+                    st.error("Audit requires student work.")
                     st.stop()
             
-            # D. Finalize
             st.session_state.final_output = res
-            thought_container.markdown("<div class='thought-box'>[COUNCIL]: Analysis complete. Report finalized.</div>", unsafe_allow_html=True)
     else:
-        st.error("Please upload a source file to begin.")
+        st.error("Source file required.")
 
-# --- 6. RESULTS DISPLAY ---
+# --- 7. DISPLAY RESULTS ---
 if "final_output" in st.session_state:
+    st.divider()
     st.markdown("<div class='result-container'>", unsafe_allow_html=True)
     st.markdown(st.session_state.final_output)
     st.markdown("</div>", unsafe_allow_html=True)
-    
-    # Download functionality
-    st.download_button(
-        label="📥 Download Report",
-        data=st.session_state.final_output,
-        file_name=f"MAKO_{mode.replace(' ', '_')}.md",
-        mime="text/markdown"
-    )
+    st.download_button("📥 Download Report", st.session_state.final_output, file_name=f"MAKO_{mode}.md")
