@@ -3,20 +3,19 @@ import streamlit_authenticator as stauth
 from PIL import Image
 import plotly.express as px
 import os
-from dotenv import load_dotenv
 
-# --- 1. CONFIGURATION (MUST BE FIRST) ---
-# This activates the 1GB limit you set in .streamlit/config.toml
+# --- 1. PAGE CONFIGURATION ---
 st.set_page_config(page_title="MAKO | Secure Agentic Hub", page_icon="🦅", layout="wide")
 
-# --- 2. CREDENTIALS DATA ---
-# This dictionary acts as your user database for now.
-# single_session=True (below) will ensure 'director_ujjain' can only be logged in once.
+# --- 2. DIRECTOR CREDENTIALS ---
+# Use these to login: 
+# Username: director_ujjain
+# Password: mako_password_2026
 credentials = {
     'usernames': {
         'director_ujjain': {
             'name': 'The Director',
-            'password': 'mako_password_2026', # Plain text for testing; hash this later!
+            'password': 'mako_password_2026', # Change this in production
             'email': 'director@mako.ai'
         },
         'admin_mako': {
@@ -27,75 +26,64 @@ credentials = {
     }
 }
 
-# --- 3. INITIALIZE AUTHENTICATOR (2026 SYNTAX) ---
-# We enable single_session=True to prevent multiple people using one login.
+# --- 3. INITIALIZE AUTHENTICATOR ---
 authenticator = stauth.Authenticate(
-    credentials=credentials,
-    cookie_name='mako_auth_cookie',
-    cookie_key='mako_signature_key',
-    cookie_expiry_days=30,
-    single_session=True  # <--- CRITICAL: ENFORCES ONE LOGIN PER USER
+    credentials,
+    'mako_auth_cookie',
+    'mako_signature_key',
+    30,
+    single_session=True  # Enforces one login at a time
 )
 
-# --- 4. RENDER LOGIN INTERFACE ---
-# Modern versions return (name, authentication_status, username)
-name, authentication_status, username = authenticator.login(location='main')
+# --- 4. RENDER LOGIN ---
+# FIX: The latest version often uses positional arguments or no arguments for default
+# We use the method that ensures the 3-value return works
+auth_result = authenticator.login()
 
-# --- 5. SYSTEM GATEKEEPER ---
+# Handle modern return logic
+if st.session_state["authentication_status"]:
+    name = st.session_state["name"]
+    authentication_status = st.session_state["authentication_status"]
+    username = st.session_state["username"]
+else:
+    authentication_status = st.session_state.get("authentication_status")
+
+# --- 5. ACCESS CONTROL ---
 
 if authentication_status == False:
-    st.error('Username/password is incorrect. Access Denied.')
+    st.error('Username/password is incorrect.')
     st.stop()
 
 elif authentication_status == None:
-    st.warning('Please enter your credentials to activate the MAKO strike engine.')
+    st.warning('Please enter your credentials.')
     st.stop()
 
 elif authentication_status:
-    # --- IF AUTHENTICATED: SHOW THE FULL HUB ---
-    
+    # --- IF AUTHENTICATED: REVEAL MAKO ---
     with st.sidebar:
         st.header(f"Welcome, {name}")
         authenticator.logout('Logout', 'sidebar')
         st.divider()
-        st.info("Status: Gated Access Active")
-        st.success("Session: Locked (Single User)")
-        st.caption("Operating Frequency: Monday Strike Mode")
-    
-    st.title("🦅 MAKO | Agentic Knowledge Orchestrator")
-    st.subheader("Institutional Intelligence Layer - Secure Environment")
+        st.success("Vault Locked: Single Session Active")
 
-    # --- 6. CORE WORKFLOW ---
-    # The limit is now 1GB as per your config.toml
+    st.title("🦅 MAKO | Agentic Knowledge Orchestrator")
+    
+    # 6. CORE WORKFLOW
     uploaded_file = st.file_uploader("Upload Institutional Source (1GB Max)", type=['png', 'jpg', 'jpeg', 'pdf'])
 
     if uploaded_file:
-        col1, col2 = st.columns([1, 1])
-        
+        col1, col2 = st.columns(2)
         with col1:
-            file_size_mb = uploaded_file.size / (1024 * 1024)
-            st.info(f"File Size: {file_size_mb:.2f} MB")
-            
-            # Show image preview if applicable
+            st.info(f"File: {uploaded_file.name} | Size: {uploaded_file.size / (1024*1024):.2f} MB")
             if uploaded_file.type in ["image/png", "image/jpeg"]:
-                img = Image.open(uploaded_file)
-                st.image(img, caption="Target Source", use_container_width=True)
-            else:
-                st.write("📄 Multi-page Document Loaded for Orchestration")
+                st.image(Image.open(uploaded_file), use_container_width=True)
         
         with col2:
-            if st.button("EXECUTE AGENTIC STRIKE"):
-                with st.spinner("MAKO is penetrating data layers..."):
-                    # Success State
-                    st.success("Analysis Complete")
-                    st.markdown("### 📊 Extracted Intelligence")
-                    
-                    # Demonstration chart using plotly (px)
-                    sample_data = {"Category": ["Integrity", "Logic", "Strategy"], "Strength": [98, 95, 92]}
-                    fig = px.bar(sample_data, x="Category", y="Strength", title="Orchestration Metrics")
-                    st.plotly_chart(fig)
-                    
-                    st.write("Data encrypted and isolated for this session.")
+            if st.button("EXECUTE STRIKE"):
+                with st.spinner("Processing..."):
+                    st.success("Target Analyzed.")
+                    sample_data = {"Security": [100], "Logic": [95], "Speed": [90]}
+                    st.plotly_chart(px.bar(sample_data, title="Agentic Metrics"))
 
     st.divider()
-    st.caption("MAKO v2.1 | Proprietary Multi-User Architecture")
+    st.caption("MAKO v2.1 | Director's Private Infrastructure")
