@@ -1,11 +1,6 @@
 streamlit
-openai
+pillow
+fpdf2
+plotly
+python-dotenv
 google-generativeai
-python-dotenv
-PyPDF2
-python-docx
-python-pptx
-Pillow
-fpdf2==2.7.8
-reportlab==4.1.0
-python-dotenv
