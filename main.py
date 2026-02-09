@@ -1,4 +1,20 @@
-import streamlit as st
+from lesson_planner import LessonPlanner
+
+# Initialize
+planner = LessonPlanner()
+
+# 1. Get Teacher Input
+selected_pedagogy = "5E"  # Example
+duration = 40             # Minutes
+
+# 2. Extend MAKO's brain with the Pedagogy
+pedagogy_prompt = planner.get_prompt_extension(selected_pedagogy, duration)
+
+# 3. Call your MAKO Agent (Passing the image data + pedagogy_prompt)
+# mako_response = mako_agent.process(image_data, pedagogy_prompt)
+
+# 4. Generate the PDF
+# planner.generate_pdf(mako_response, "Monday_Strike_Lesson_Plan.pdf")import streamlit as st
 from utils.api_handler import APIHandler
 from utils.document_processor import DocumentProcessor
 from agents.researcher import Researcher
