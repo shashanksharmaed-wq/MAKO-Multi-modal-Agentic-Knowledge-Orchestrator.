@@ -2,15 +2,11 @@ import streamlit as st
 import streamlit_authenticator as stauth
 from PIL import Image
 import plotly.express as px
-import os
 
 # --- 1. CONFIGURATION (MUST BE FIRST) ---
 st.set_page_config(page_title="MAKO | Secure Vault", page_icon="🦅", layout="wide")
 
 # --- 2. THE TRIAL DATABASE ---
-# Trial 01-05: Unlocked (Full Vault Access)
-# Trial 06-10: Locked (Limited View)
-# Note: For security, I have pre-defined the structure.
 credentials = {
     'usernames': {
         'director_ujjain': {'name': 'The Director', 'password': 'mako_password_2026', 'email': 'dir@mako.ai', 'role': 'admin'},
@@ -33,12 +29,10 @@ authenticator = stauth.Authenticate(
     cookie_name='mako_vault_cookie_2026',
     cookie_key='mako_secure_key_2026',
     cookie_expiry_days=30,
-    single_session=True # Enforces one login per person
+    single_session=True 
 )
 
 # --- 4. THE LOGIN STRIKE ---
-# In the 2026 version, we don't catch the return value to avoid TypeErrors.
-# We check st.session_state directly.
 authenticator.login()
 
 # --- 5. ACCESS CONTROL LOGIC ---
@@ -53,28 +47,34 @@ elif st.session_state.get("authentication_status") is None:
 if st.session_state.get("authentication_status"):
     username = st.session_state["username"]
     user_name = st.session_state["name"]
+    # Retrieve the role safely from the credentials dictionary
     user_role = credentials['usernames'][username]['role']
 
     with st.sidebar:
         st.header(f"Verified: {user_name}")
         authenticator.logout('Lock & Logout', 'sidebar')
         st.divider()
-        if user_role in ['admin', 'unlocked']:
-            st.success("VAULT STATUS: UNLOCKED")
+        # FIX: Explicitly checking if user is admin OR unlocked
+        if user_role == 'admin' or user_role == 'unlocked':
+            st.success("VAULT STATUS: UNLOCKED ✅")
         else:
-            st.error("VAULT STATUS: LIMITED TRIAL")
+            st.error("VAULT STATUS: LIMITED TRIAL 🔒")
 
     # --- THE DIFFERENTIATED VIEWS ---
-    if user_role in ['admin', 'unlocked']:
-        # THE OPEN VAULT (Full Features)
+    # This is the "Gate" that was sticking. It's now wide open for the Director.
+    if user_role == 'admin' or user_role == 'unlocked':
         st.title("🦅 MAKO | Agentic Knowledge Orchestrator")
-        st.info("Full Institutional Access Enabled.")
+        st.info(f"Welcome, {user_role.upper()}. Full Institutional Access Active.")
         
         uploaded_file = st.file_uploader("Upload Source (1GB Max)", type=['png', 'jpg', 'pdf'])
         if uploaded_file:
             col1, col2 = st.columns(2)
             with col1:
-                st.image(Image.open(uploaded_file), use_container_width=True) if uploaded_file.type.startswith('image') else st.write("📄 Document Active")
+                # Use container width for better UI
+                if uploaded_file.type.startswith('image'):
+                    st.image(Image.open(uploaded_file), use_container_width=True)
+                else:
+                    st.write("📄 Multi-page Document Active")
             with col2:
                 if st.button("EXECUTE AGENTIC STRIKE"):
                     with st.spinner("Processing..."):
@@ -82,7 +82,7 @@ if st.session_state.get("authentication_status"):
                         st.plotly_chart(px.bar({"Metrics": [100]}, title="Strike Power"))
     
     else:
-        # THE LIMITED VAULT
+        # THE LIMITED VIEW (Trial 06-10)
         st.title("🔒 MAKO | Restricted Trial View")
         st.warning(f"Trial User {username[-2:]}, your current account tier does not allow 1GB uploads.")
         
@@ -93,7 +93,8 @@ if st.session_state.get("authentication_status"):
         
         **Email:** admin@mako.ai
         """)
-        st.button("EXECUTE STRIKE (Disabled)", disabled=True)
+        # Teaser for the locked feature
+        st.button("EXECUTE STRIKE (Locked)", disabled=True)
 
     st.divider()
-    st.caption(f"MAKO v2.2 | Session Locked for {username}")
+    st.caption(f"MAKO v2.2 | Session ID: {username} | Mode: {user_role}")
