@@ -4,86 +4,96 @@ from PIL import Image
 import plotly.express as px
 import os
 
-# --- 1. PAGE CONFIGURATION ---
-st.set_page_config(page_title="MAKO | Secure Agentic Hub", page_icon="🦅", layout="wide")
+# --- 1. CONFIGURATION (MUST BE FIRST) ---
+st.set_page_config(page_title="MAKO | Secure Vault", page_icon="🦅", layout="wide")
 
-# --- 2. DIRECTOR CREDENTIALS ---
-# Use these to login: 
-# Username: director_ujjain
-# Password: mako_password_2026
+# --- 2. THE TRIAL DATABASE ---
+# Trial 01-05: Unlocked (Full Vault Access)
+# Trial 06-10: Locked (Limited View)
+# Note: For security, I have pre-defined the structure.
 credentials = {
     'usernames': {
-        'director_ujjain': {
-            'name': 'The Director',
-            'password': 'mako_password_2026', # Change this in production
-            'email': 'director@mako.ai'
-        },
-        'admin_mako': {
-            'name': 'System Admin',
-            'password': 'admin_access_only',
-            'email': 'admin@mako.ai'
-        }
+        'director_ujjain': {'name': 'The Director', 'password': 'mako_password_2026', 'email': 'dir@mako.ai', 'role': 'admin'},
+        'trial_01': {'name': 'Trial 01', 'password': 'pass_01', 'email': 't1@mako.ai', 'role': 'unlocked'},
+        'trial_02': {'name': 'Trial 02', 'password': 'pass_02', 'email': 't2@mako.ai', 'role': 'unlocked'},
+        'trial_03': {'name': 'Trial 03', 'password': 'pass_03', 'email': 't3@mako.ai', 'role': 'unlocked'},
+        'trial_04': {'name': 'Trial 04', 'password': 'pass_04', 'email': 't4@mako.ai', 'role': 'unlocked'},
+        'trial_05': {'name': 'Trial 05', 'password': 'pass_05', 'email': 't5@mako.ai', 'role': 'unlocked'},
+        'trial_06': {'name': 'Trial 06', 'password': 'pass_06', 'email': 't6@mako.ai', 'role': 'limited'},
+        'trial_07': {'name': 'Trial 07', 'password': 'pass_07', 'email': 't7@mako.ai', 'role': 'limited'},
+        'trial_08': {'name': 'Trial 08', 'password': 'pass_08', 'email': 't8@mako.ai', 'role': 'limited'},
+        'trial_09': {'name': 'Trial 09', 'password': 'pass_09', 'email': 't9@mako.ai', 'role': 'limited'},
+        'trial_10': {'name': 'Trial 10', 'password': 'pass_10', 'email': 't10@mako.ai', 'role': 'limited'}
     }
 }
 
 # --- 3. INITIALIZE AUTHENTICATOR ---
 authenticator = stauth.Authenticate(
-    credentials,
-    'mako_auth_cookie',
-    'mako_signature_key',
-    30,
-    single_session=True  # Enforces one login at a time
+    credentials=credentials,
+    cookie_name='mako_vault_cookie_2026',
+    cookie_key='mako_secure_key_2026',
+    cookie_expiry_days=30,
+    single_session=True # Enforces one login per person
 )
 
-# --- 4. RENDER LOGIN ---
-# FIX: The latest version often uses positional arguments or no arguments for default
-# We use the method that ensures the 3-value return works
-auth_result = authenticator.login()
+# --- 4. THE LOGIN STRIKE ---
+# In the 2026 version, we don't catch the return value to avoid TypeErrors.
+# We check st.session_state directly.
+authenticator.login()
 
-# Handle modern return logic
-if st.session_state["authentication_status"]:
-    name = st.session_state["name"]
-    authentication_status = st.session_state["authentication_status"]
-    username = st.session_state["username"]
-else:
-    authentication_status = st.session_state.get("authentication_status")
-
-# --- 5. ACCESS CONTROL ---
-
-if authentication_status == False:
+# --- 5. ACCESS CONTROL LOGIC ---
+if st.session_state.get("authentication_status") is False:
     st.error('Username/password is incorrect.')
     st.stop()
-
-elif authentication_status == None:
-    st.warning('Please enter your credentials.')
+elif st.session_state.get("authentication_status") is None:
+    st.warning('Welcome to the MAKO Trial Hub. Enter your ID to unlock.')
     st.stop()
 
-elif authentication_status:
-    # --- IF AUTHENTICATED: REVEAL MAKO ---
+# --- 6. THE VAULT (AUTHORIZED AREA) ---
+if st.session_state.get("authentication_status"):
+    username = st.session_state["username"]
+    user_name = st.session_state["name"]
+    user_role = credentials['usernames'][username]['role']
+
     with st.sidebar:
-        st.header(f"Welcome, {name}")
-        authenticator.logout('Logout', 'sidebar')
+        st.header(f"Verified: {user_name}")
+        authenticator.logout('Lock & Logout', 'sidebar')
         st.divider()
-        st.success("Vault Locked: Single Session Active")
+        if user_role in ['admin', 'unlocked']:
+            st.success("VAULT STATUS: UNLOCKED")
+        else:
+            st.error("VAULT STATUS: LIMITED TRIAL")
 
-    st.title("🦅 MAKO | Agentic Knowledge Orchestrator")
-    
-    # 6. CORE WORKFLOW
-    uploaded_file = st.file_uploader("Upload Institutional Source (1GB Max)", type=['png', 'jpg', 'jpeg', 'pdf'])
-
-    if uploaded_file:
-        col1, col2 = st.columns(2)
-        with col1:
-            st.info(f"File: {uploaded_file.name} | Size: {uploaded_file.size / (1024*1024):.2f} MB")
-            if uploaded_file.type in ["image/png", "image/jpeg"]:
-                st.image(Image.open(uploaded_file), use_container_width=True)
+    # --- THE DIFFERENTIATED VIEWS ---
+    if user_role in ['admin', 'unlocked']:
+        # THE OPEN VAULT (Full Features)
+        st.title("🦅 MAKO | Agentic Knowledge Orchestrator")
+        st.info("Full Institutional Access Enabled.")
         
-        with col2:
-            if st.button("EXECUTE STRIKE"):
-                with st.spinner("Processing..."):
-                    st.success("Target Analyzed.")
-                    sample_data = {"Security": [100], "Logic": [95], "Speed": [90]}
-                    st.plotly_chart(px.bar(sample_data, title="Agentic Metrics"))
+        uploaded_file = st.file_uploader("Upload Source (1GB Max)", type=['png', 'jpg', 'pdf'])
+        if uploaded_file:
+            col1, col2 = st.columns(2)
+            with col1:
+                st.image(Image.open(uploaded_file), use_container_width=True) if uploaded_file.type.startswith('image') else st.write("📄 Document Active")
+            with col2:
+                if st.button("EXECUTE AGENTIC STRIKE"):
+                    with st.spinner("Processing..."):
+                        st.success("Intelligence Secured.")
+                        st.plotly_chart(px.bar({"Metrics": [100]}, title="Strike Power"))
+    
+    else:
+        # THE LIMITED VAULT
+        st.title("🔒 MAKO | Restricted Trial View")
+        st.warning(f"Trial User {username[-2:]}, your current account tier does not allow 1GB uploads.")
+        
+        st.markdown("""
+        ### Upgrade Required
+        You are currently on a **Limited Trial**. To unlock the full extraction engine, 
+        contact the Director for an **Institutional Key**.
+        
+        **Email:** admin@mako.ai
+        """)
+        st.button("EXECUTE STRIKE (Disabled)", disabled=True)
 
     st.divider()
-    st.caption("MAKO v2.1 | Director's Private Infrastructure")
+    st.caption(f"MAKO v2.2 | Session Locked for {username}")
