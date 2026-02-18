@@ -1,87 +1,59 @@
 import streamlit as st
-import os
 from PIL import Image
-from lesson_planner import LessonPlanner
+import pytesseract
+from pdf2image import convert_from_bytes
+import io
 
-# --- 1. INITIALIZE ARCHITECTURAL COMPONENTS ---
-planner = LessonPlanner()
+class LessonPlanner:
+    def __init__(self):
+        # Define the 5 pedagogical models
+        self.pedagogies = {
+            "Direct Instruction": "Focus on explicit teaching: I Do, We Do, You Do.",
+            "Inquiry-Based": "Focus on exploration: Trigger curiosity with a central question.",
+            "5E Model": "Engage, Explore, Explain, Elaborate, Evaluate.",
+            "BOPPPS": "Bridge-in, Objective, Pre-test, Participatory, Post-test, Summary.",
+            "Flipped Classroom": "Pre-class content (video/reading) followed by in-class application."
+        }
 
-# --- 2. STREAMLIT CONFIG (MUST BE FIRST) ---
-st.set_page_config(
-    page_title="MAKO | Agentic Knowledge Orchestrator",
-    page_icon="🦅",
-    layout="wide"
-)
+    def extract_text(self, uploaded_file):
+        """Extracts text from scanned images or PDF pages."""
+        try:
+            if uploaded_file.type == "application/pdf":
+                images = convert_from_bytes(uploaded_file.read())
+                text = ""
+                for img in images:
+                    text += pytesseract.image_to_string(img)
+            else:
+                image = Image.open(uploaded_file)
+                text = pytesseract.image_to_string(image)
+            return text
+        except Exception as e:
+            return f"Error reading document: {str(e)}"
 
-# --- 3. STYLING & UI ---
-st.markdown("""
-    <style>
-    .main { background-color: #0e1117; color: #ffffff; }
-    .stButton>button { width: 100%; border-radius: 5px; height: 3em; background-color: #ff4b4b; color: white; }
-    </style>
-    """, unsafe_allow_index=True)
+    def render_ui(self):
+        st.subheader("🍎 Lesson Architect")
+        st.markdown("Scan your source material (textbook page, handwritten notes, or PDF) to generate a plan.")
 
-st.title("🦅 MAKO | Multi-Modal Agentic Hub")
-st.subheader("Bunker Build: 1.5L+ PM Portfolio Edition")
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            uploaded_file = st.file_uploader("Upload Document", type=['pdf', 'png', 'jpg', 'jpeg'])
+            pedagogy = st.selectbox("Choose Pedagogy", list(self.pedagogies.keys()))
+        
+        with col2:
+            st.info(f"**Strategy Note:** {self.pedagogies[pedagogy]}")
 
-# --- 4. SIDEBAR: THE CONTROL TOWER ---
-with st.sidebar:
-    st.header("⚙️ System Parameters")
-    mode = st.selectbox("Select Mode", ["Knowledge Extraction", "Lesson Planner", "Assessment Engine"])
-    
-    if mode == "Lesson Planner":
-        pedagogy = st.selectbox("Pedagogy Model", ["5E Model", "Bloom's Taxonomy", "Direct Instruction"])
-        duration = st.slider("Lecture Duration (Mins)", 20, 90, 40)
-    
-    st.divider()
-    st.info("Status: System Active | Mars in Scorpio Frequency")
-
-# --- 5. CORE WORKFLOW ---
-col1, col2 = st.columns([1, 1])
-
-with col1:
-    st.header("📥 Input Source")
-    uploaded_file = st.file_uploader("Snap or Upload Textbook/Notes", type=["jpg", "jpeg", "png"])
-    
-    if uploaded_file:
-        image = Image.open(uploaded_file)
-        st.image(image, caption="Uploaded Content", use_column_width=True)
-
-with col2:
-    st.header("🚀 Agentic Output")
-    
-    if st.button("EXECUTE STRIKE"):
-        if uploaded_file:
-            with st.spinner("MAKO is orchestrating..."):
-                # --- MOCK LOGIC FOR AGENT RESPONSE ---
-                # In your real code, replace this with your LLM/Vision call
-                mock_response = {
-                    "Introduction": "Core concepts identified from the image.",
-                    "Detailed Plan": f"A {duration} minute lesson using {pedagogy}.",
-                    "Assessment": "3 Quiz questions generated based on content."
-                }
+        if uploaded_file and st.button("Generate Descriptive Plan"):
+            with st.spinner("Analyzing content and orchestrating pedagogy..."):
+                extracted_text = self.extract_text(uploaded_file)
                 
-                # Display Results
-                for section, text in mock_response.items():
-                    st.write(f"**{section}**")
-                    st.info(text)
-                
-                # --- PDF GENERATION ---
-                if mode == "Lesson Planner":
-                    pdf_filename = "MAKO_Lesson_Plan.pdf"
-                    # Generate the PDF byte data
-                    pdf_data = planner.generate_pdf(mock_response)
-                    
-                    st.success("Lesson Plan Compiled Successfully!")
-                    st.download_button(
-                        label="📥 Download PDF Lesson Plan",
-                        data=pdf_data,
-                        file_name=pdf_filename,
-                        mime="application/pdf"
-                    )
-        else:
-            st.warning("Please upload an image to trigger the agent.")
-
-# --- 6. SYSTEM FOOTER ---
-st.divider()
-st.caption("MAKO v2.0 | God-Built for Institutional Deployment")
+                if extracted_text.strip():
+                    st.success("Document Scanned Successfully!")
+                    # Here you would typically send 'extracted_text' and 'pedagogy' to an LLM
+                    # For now, we display the extraction and the plan structure
+                    st.markdown("---")
+                    st.markdown(f"### 📝 Generated {pedagogy} Lesson Plan")
+                    st.write("**Learning Objective:** Derived from scanned content.")
+                    st.write("**Sequence:** Logic based on " + pedagogy)
+                    st.text_area("Scanned Content Reference", extracted_text, height=150)
+                else:
+                    st.error("Could not extract text. Please ensure the scan is clear.")
