@@ -1,6 +1,6 @@
-streamlit
-streamlit-authenticator
-PyYAML
-pillow
-plotly
-python-dotenv
+streamlit==1.31.0
+streamlit-authenticator==0.3.1
+pytesseract
+pdf2image
+Pillow
+openai
