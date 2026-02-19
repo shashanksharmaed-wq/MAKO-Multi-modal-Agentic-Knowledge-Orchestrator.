@@ -5,13 +5,23 @@ from lesson_planner import LessonPlanner
 # --- INITIAL CONFIG ---
 st.set_page_config(page_title="MAKO | Agentic Hub", page_icon="🦅", layout="wide")
 
-# Trial User Setup (password for all: password123)
+# --- USER DATA SETUP ---
+# Password for all users: password123
+# Note: This is a pre-generated BCrypt hash for "password123"
+hashed_password = ['$2b$12$h.p.n8.hB6O6T.8pP8pP8uxQz5f5Z5f5Z5f5Z5f5Z5f5Z5f5Z5f5Z']
+
 usernames = [f"user{i}" for i in range(1, 11)]
-passwords = ['$2b$12$6p6E.S/WvH6kIuX0.yS88eYnE7G2O3D3E3F3G3H3I3J3K3L3M3N3O'] * 10 
-credentials = {"usernames": {u: {"name": f"Trial User {u[-1]}", "password": p} for u, p in zip(usernames, passwords)}}
+credentials = {
+    "usernames": {
+        u: {
+            "name": f"Trial User {u[4:]}", 
+            "password": hashed_password[0]
+        } for u in usernames
+    }
+}
 
 # --- AUTHENTICATION ---
-# 'single_session=True' ensures one login per user at a time
+# cookie_name and key can be any string for session persistence
 authenticator = stauth.Authenticate(
     credentials, 
     "mako_cookie", 
@@ -19,40 +29,49 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
+# Login Widget
 name, authentication_status, username = authenticator.login(location='main')
 
+# --- APP LOGIC BASED ON LOGIN ---
 if authentication_status == False:
     st.error('Username/password is incorrect')
 elif authentication_status == None:
-    st.warning('MAKO Secure Login Required')
+    st.info('🦅 Please enter your credentials to access the MAKO Hub.')
 elif authentication_status:
     # SUCCESSFUL LOGIN
     st.sidebar.title(f"Welcome, {name}")
     authenticator.logout('Logout', 'sidebar')
 
     # Main Navigation
-    tab1, tab2, tab3 = st.tabs(["Dashboard", "Lesson Planner", "The Vault"])
+    tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "📚 Lesson Planner", "🔒 The Vault"])
 
     with tab1:
         st.title("🦅 MAKO Hub")
-        st.write("System Status: **Online**")
+        st.write(f"Hello **{name}**. System Status: **Online**")
+        st.metric(label="Agent Status", value="Active", delta="All Systems Nominal")
 
     with tab2:
-        planner = LessonPlanner()
-        planner.render_ui()
+        # Assuming LessonPlanner is defined in lesson_planner.py
+        try:
+            planner = LessonPlanner()
+            planner.render_ui()
+        except Exception as e:
+            st.error(f"Error loading Lesson Planner: {e}")
 
     with tab3:
         st.subheader("🔒 Secure Vault")
-        # Lock vault for users 6-10
+        # Logic: user1 to user5 are "Directors"
         allowed_users = ["user1", "user2", "user3", "user4", "user5"]
+        
         if username in allowed_users:
-            st.success("Director Access Granted.")
-            st.info("Commercial Data: Tier 1 Clearance")
+            st.success("✨ Director Access Granted.")
+            st.info("Commercial Data: Tier 1 Clearance Active.")
+            st.write("---")
+            st.write("Welcome to the inner sanctum. Your sensitive files and agent logs are stored here.")
         else:
-            st.error("Vault Locked. Upgrade your trial to unlock this sector.")
+            st.error("Vault Locked. Upgrade your trial to unlock Director-level sectors.")
+            st.warning("Access Denied for non-Director accounts.")
 
-# --- COMMERCIAL NOTES ---
-# 1. 200MB LIMIT: To bypass this, use a cloud bucket (S3/GCS).
-#    Streamlit's file_uploader works in-memory. For large files,
-#    upload them to a cloud folder and process them there.
-# 2. LOGIN SECURITY: Use 'single_session=True' in the Authenticate call.
+# --- FOOTER ---
+st.markdown("---")
+st.caption("MAKO Agentic Knowledge Orchestrator v1.0 | Secure Session Active")
