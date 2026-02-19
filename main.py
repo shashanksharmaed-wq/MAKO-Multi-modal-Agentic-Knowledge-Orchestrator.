@@ -6,39 +6,45 @@ from lesson_planner import LessonPlanner
 st.set_page_config(page_title="MAKO | Agentic Hub", page_icon="🦅", layout="wide")
 
 # --- USER DATA SETUP ---
-# Password for all users: password123
-# Note: This is a pre-generated BCrypt hash for "password123"
-hashed_password = ['$2b$12$h.p.n8.hB6O6T.8pP8pP8uxQz5f5Z5f5Z5f5Z5f5Z5f5Z5f5Z5f5Z']
-
+# We are using 'password123' for all accounts. 
+# In this version, we set auto_hash=True so the library handles the math for us.
 usernames = [f"user{i}" for i in range(1, 11)]
 credentials = {
     "usernames": {
         u: {
             "name": f"Trial User {u[4:]}", 
-            "password": hashed_password[0]
+            "password": "password123"  # Plain text here, handled by auto_hash below
         } for u in usernames
     }
 }
 
 # --- AUTHENTICATION ---
-# cookie_name and key can be any string for session persistence
+# cookie_name and key are for session persistence
 authenticator = stauth.Authenticate(
     credentials, 
-    "mako_cookie", 
+    "mako_session_cookie", 
     "mako_secret_key", 
-    cookie_expiry_days=1
+    cookie_expiry_days=1,
+    auto_hash=True  # THIS IS THE KEY FIX: It hashes 'password123' correctly for you
 )
 
-# Login Widget
-name, authentication_status, username = authenticator.login(location='main')
+# Render the login widget
+# Using st.session_state is more reliable in newer versions
+try:
+    authenticator.login(location='main')
+except Exception as e:
+    st.error(f"Authentication Error: {e}")
 
-# --- APP LOGIC BASED ON LOGIN ---
-if authentication_status == False:
+# --- APP LOGIC ---
+if st.session_state["authentication_status"] is False:
     st.error('Username/password is incorrect')
-elif authentication_status == None:
-    st.info('🦅 Please enter your credentials to access the MAKO Hub.')
-elif authentication_status:
+elif st.session_state["authentication_status"] is None:
+    st.info('🦅 Welcome to MAKO. Please log in to continue.')
+elif st.session_state["authentication_status"]:
     # SUCCESSFUL LOGIN
+    username = st.session_state["username"]
+    name = st.session_state["name"]
+    
     st.sidebar.title(f"Welcome, {name}")
     authenticator.logout('Logout', 'sidebar')
 
@@ -47,11 +53,10 @@ elif authentication_status:
 
     with tab1:
         st.title("🦅 MAKO Hub")
-        st.write(f"Hello **{name}**. System Status: **Online**")
-        st.metric(label="Agent Status", value="Active", delta="All Systems Nominal")
+        st.write(f"System Status: **Online** | User: **{username}**")
+        st.info("Agentic Knowledge Orchestrator initialized.")
 
     with tab2:
-        # Assuming LessonPlanner is defined in lesson_planner.py
         try:
             planner = LessonPlanner()
             planner.render_ui()
@@ -65,13 +70,10 @@ elif authentication_status:
         
         if username in allowed_users:
             st.success("✨ Director Access Granted.")
-            st.info("Commercial Data: Tier 1 Clearance Active.")
-            st.write("---")
-            st.write("Welcome to the inner sanctum. Your sensitive files and agent logs are stored here.")
+            st.write("Welcome, Director. Sensitive data is now visible.")
         else:
-            st.error("Vault Locked. Upgrade your trial to unlock Director-level sectors.")
-            st.warning("Access Denied for non-Director accounts.")
+            st.error("Vault Locked. Upgrade your trial for Director Clearance.")
 
 # --- FOOTER ---
 st.markdown("---")
-st.caption("MAKO Agentic Knowledge Orchestrator v1.0 | Secure Session Active")
+st.caption("MAKO Agentic Knowledge Orchestrator | © 2026")
